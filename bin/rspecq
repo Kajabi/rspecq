@@ -6,6 +6,7 @@ DEFAULT_REDIS_HOST = "127.0.0.1".freeze
 DEFAULT_REPORT_TIMEOUT = 3600 # 1 hour
 DEFAULT_MAX_REQUEUES = 3
 DEFAULT_FAIL_FAST = 0
+DEFAULT_QUEUE_TIMEOUT = 30
 
 def env_set?(var)
   ["1", "true"].include?(ENV[var])
@@ -96,6 +97,12 @@ OptionParser.new do |o|
     opts[:junit_output] = v
   end
 
+  o.on("--queue-ready-timeout N", Integer, "Time to wait for queue to be ready " \
+    "in N seconds "                                                             \
+    "(default: #{DEFAULT_QUEUE_TIMEOUT}).") do |v|
+   opts[:queue_ready_timeout] = v
+  end
+
   o.on_tail("-h", "--help", "Show this message.") do
     puts o
     exit
@@ -118,6 +125,7 @@ opts[:max_requeues] ||= Integer(ENV["RSPECQ_MAX_REQUEUES"] || DEFAULT_MAX_REQUEU
 opts[:redis_url] ||= ENV["RSPECQ_REDIS_URL"]
 opts[:fail_fast] ||= Integer(ENV["RSPECQ_FAIL_FAST"] || DEFAULT_FAIL_FAST)
 opts[:junit_output] ||= ENV["RSPECQ_JUNIT_OUTPUT"]
+opts[:queue_ready_timeout] ||= ENV["RSPECQ_QUEUE_TIMEOUT"] || DEFAULT_QUEUE_TIMEOUT
 
 # rubocop:disable Style/RaiseArgs, Layout/EmptyLineAfterGuardClause
 raise OptionParser::MissingArgument.new(:build) if opts[:build].nil?
@@ -167,5 +175,6 @@ else
   worker.max_requeues = opts[:max_requeues]
   worker.fail_fast = opts[:fail_fast]
   worker.junit_output = opts[:junit_output]
+  worker.queue_ready_timeout = opts[:queue_ready_timeout]
   worker.work
 end
