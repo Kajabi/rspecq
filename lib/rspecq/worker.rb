@@ -54,6 +54,11 @@ module RSpecQ
     # on the number of test suites run in the current process.
     attr_accessor :junit_output
 
+    # Time to wait for worker queue to be ready
+    #
+    # Defaults to 30 seconds
+    attr_accessor :queue_ready_timeout
+
     # Optional arguments to pass along to rspec.
     #
     # Defaults to nil
@@ -72,6 +77,7 @@ module RSpecQ
       @heartbeat_updated_at = nil
       @max_requeues = 3
       @junit_output = nil
+      @queue_ready_timeout = 30
 
       RSpec::Core::Formatters.register(Formatters::JobTimingRecorder, :dump_summary)
       RSpec::Core::Formatters.register(Formatters::ExampleCountRecorder, :dump_summary)
@@ -84,7 +90,7 @@ module RSpecQ
       puts "Working for build #{@build_id} (worker=#{@worker_id})"
 
       try_publish_queue!(queue)
-      queue.wait_until_published
+      queue.wait_until_published(@queue_ready_timeout)
       idx = 0
       loop do
         # we have to bootstrap this so that it can be used in the first call
