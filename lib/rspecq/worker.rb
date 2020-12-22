@@ -178,23 +178,23 @@ module RSpecQ
         end.map(&:first) & files_to_run
       end
 
-      puts("slow_files size: #{slow_files.size}")
+      $stderr.puts("slow_files size: #{slow_files.size}")
 
       if slow_files.any?
-        puts "files to run"
+        $stderr.puts "files to run"
 
         jobs.concat(files_to_run - slow_files)
 
-        puts "Files to example ids"
+        $stderr.puts "Files to example ids"
         jobs.concat(files_to_example_ids(slow_files))
       else
         jobs.concat(files_to_run)
       end
 
-      puts "default timngs"
+      $stderr.puts "default timngs"
       default_timing = timings.values[timings.values.size / 2]
 
-      puts "assign timings"
+      $stderr.puts "assign timings"
       # assign timings (based on previous runs) to all jobs
       jobs = jobs.each_with_object({}) do |j, h|
         puts "Untimed job: #{j}" if timings[j].nil?
@@ -204,7 +204,7 @@ module RSpecQ
         h[j] = timings[j] || default_timing
       end
 
-      puts "sort jobs by timings"
+      $stderr.puts "sort jobs by timings"
       # sort jobs based on their timings (slowest to be processed first)
       jobs = jobs.sort_by { |_j, t| -t }.map(&:first)
 
