@@ -100,7 +100,7 @@ OptionParser.new do |o|
   o.on("--queue-ready-timeout N", Integer, "Time to wait for queue to be ready " \
     "in N seconds "                                                             \
     "(default: #{DEFAULT_QUEUE_TIMEOUT}).") do |v|
-   opts[:queue_ready_timeout] = v
+    opts[:queue_ready_timeout] = v
   end
 
   o.on_tail("-h", "--help", "Show this message.") do

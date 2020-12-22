@@ -178,15 +178,23 @@ module RSpecQ
         end.map(&:first) & files_to_run
       end
 
+      puts("slow_files size: #{slow_files.size}")
+
       if slow_files.any?
+        puts "files to run"
+
         jobs.concat(files_to_run - slow_files)
+
+        puts "Files to example ids"
         jobs.concat(files_to_example_ids(slow_files))
       else
         jobs.concat(files_to_run)
       end
 
+      puts "default timngs"
       default_timing = timings.values[timings.values.size / 2]
 
+      puts "assign timings"
       # assign timings (based on previous runs) to all jobs
       jobs = jobs.each_with_object({}) do |j, h|
         puts "Untimed job: #{j}" if timings[j].nil?
@@ -196,6 +204,7 @@ module RSpecQ
         h[j] = timings[j] || default_timing
       end
 
+      puts "sort jobs by timings"
       # sort jobs based on their timings (slowest to be processed first)
       jobs = jobs.sort_by { |_j, t| -t }.map(&:first)
 
@@ -231,8 +240,8 @@ module RSpecQ
     # reported in the normal flow when they're eventually picked up by a worker.
     def files_to_example_ids(files)
       cmd = "DISABLE_SPRING=1 bundle exec rspec --dry-run --format json #{files.join(' ')}"
+      puts cmd
       out, err, cmd_result = Open3.capture3(cmd)
-
       if !cmd_result.success?
         rspec_output = begin
           JSON.parse(out)
@@ -253,7 +262,9 @@ module RSpecQ
         return files
       end
 
-      JSON.parse(out)["examples"].map { |e| e["id"] }
+      # strip extraneous output before json
+      rspec_json = out.gsub(/.*?(?=\{"version")/im, "")
+      JSON.parse(rspec_json)["examples"].map { |e| e["id"] }
     end
 
     def relative_path(job)
@@ -270,17 +281,28 @@ module RSpecQ
     def log_event(msg, level, additional = {})
       puts msg
 
-      Raven.capture_message(msg, level: level, extra: {
-        build: @build_id,
-        worker: @worker_id,
-        queue: queue.inspect,
-        files_or_dirs_to_run: files_or_dirs_to_run,
-        populate_timings: populate_timings,
-        file_split_threshold: file_split_threshold,
-        heartbeat_updated_at: @heartbeat_updated_at,
-        object: inspect,
-        pid: Process.pid
-      }.merge(additional))
+      Raven.capture_message(msg,
+                            level: level,
+                            extra: {
+                              build: @build_id,
+                              worker: @worker_id,
+                              queue: queue.inspect,
+                              files_or_dirs_to_run: files_or_dirs_to_run,
+                              populate_timings: populate_timings,
+                              file_split_threshold: file_split_threshold,
+                              heartbeat_updated_at: @heartbeat_updated_at,
+                              object: inspect,
+                              pid: Process.pid
+                            }.merge(additional))
+    end
+
+    def log_time
+      start_at = Time.now
+
+      yield if block_given?
+
+      execution_time = (Time.now - start_at).round(2)
+      puts "Execution time: #{execution_time}s"
     end
   end
 end
