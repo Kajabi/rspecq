@@ -263,7 +263,7 @@ module RSpecQ
       end
 
       # strip extraneous output before json
-      rspec_json = out.gsub(/.*?(?=\{"version")/im, "")
+      rspec_json = out[out.index(/{.*version/)..-1]
       JSON.parse(rspec_json)["examples"].map { |e| e["id"] }
     end
 
