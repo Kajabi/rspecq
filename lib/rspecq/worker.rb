@@ -240,7 +240,7 @@ module RSpecQ
     # reported in the normal flow when they're eventually picked up by a worker.
     def files_to_example_ids(files)
       cmd = "DISABLE_SPRING=1 bundle exec rspec --dry-run --format json #{files.join(' ')}"
-      puts cmd
+      $stderr.puts cmd
       out, err, cmd_result = Open3.capture3(cmd)
       if !cmd_result.success?
         rspec_output = begin
