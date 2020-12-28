@@ -258,7 +258,9 @@ module RSpecQ
     end
 
     def rspec_dry_run_command(files)
-      "DISABLE_SPRING=1 bundle exec rspec --dry-run --format json #{files.join(' ')}"
+      cmd = "DISABLE_SPRING=1 bundle exec rspec --dry-run --format json #{files.join(' ')}"
+      $stderr.puts cmd
+      cmd
     end
 
     def relative_path(job)
