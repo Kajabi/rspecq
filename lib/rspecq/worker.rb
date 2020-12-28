@@ -54,6 +54,11 @@ module RSpecQ
     # on the number of test suites run in the current process.
     attr_accessor :junit_output
 
+    # Time to wait for worker queue to be ready
+    #
+    # Defaults to 30 seconds
+    attr_accessor :queue_ready_timeout
+
     # Optional arguments to pass along to rspec.
     #
     # Defaults to nil
@@ -72,6 +77,7 @@ module RSpecQ
       @heartbeat_updated_at = nil
       @max_requeues = 3
       @junit_output = nil
+      @queue_ready_timeout = 30
 
       RSpec::Core::Formatters.register(Formatters::JobTimingRecorder, :dump_summary)
       RSpec::Core::Formatters.register(Formatters::ExampleCountRecorder, :dump_summary)
@@ -84,7 +90,7 @@ module RSpecQ
       puts "Working for build #{@build_id} (worker=#{@worker_id})"
 
       try_publish_queue!(queue)
-      queue.wait_until_published
+      queue.wait_until_published(@queue_ready_timeout)
       idx = 0
       loop do
         # we have to bootstrap this so that it can be used in the first call
@@ -224,8 +230,7 @@ module RSpecQ
     # falling back to scheduling them as whole files. Their errors will be
     # reported in the normal flow when they're eventually picked up by a worker.
     def files_to_example_ids(files)
-      cmd = "DISABLE_SPRING=1 bundle exec rspec --dry-run --format json #{files.join(' ')}"
-      out, err, cmd_result = Open3.capture3(cmd)
+      out, err, cmd_result = Open3.capture3(rspec_dry_run_command(files))
 
       if !cmd_result.success?
         rspec_output = begin
@@ -247,7 +252,15 @@ module RSpecQ
         return files
       end
 
-      JSON.parse(out)["examples"].map { |e| e["id"] }
+      # strip extraneous output before json
+      rspec_json = out[out.index(/{.*version/)..-1]
+      JSON.parse(rspec_json)["examples"].map { |e| e["id"] }
+    end
+
+    def rspec_dry_run_command(files)
+      cmd = "DISABLE_SPRING=1 bundle exec rspec --dry-run --format json #{files.join(' ')}"
+      $stderr.puts cmd
+      cmd
     end
 
     def relative_path(job)

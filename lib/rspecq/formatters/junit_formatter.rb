@@ -35,9 +35,22 @@ module RSpecQ
       end
 
       def examples
+        if @requeued_examples.size > 0
+          $stderr.puts "============ Example Notifications ============"
+          $stderr.puts @examples_notification.notifications.map { |en| log_example(en.example) }
+          $stderr.puts "============ Requeued Examples ================"
+          $stderr.puts @requeued_examples.map { |ex| log_example(ex) }
+        end
         @examples_notification.notifications.reject do |example_notification|
           @requeued_examples.map(&:id).include?(example_notification.example.id)
         end
+      end
+
+      def log_example(example)
+        $stderr.puts "----------"
+        $stderr.puts example.id
+        $stderr.puts example.inspect_output
+        $stderr.puts "----------"
       end
     end
   end
